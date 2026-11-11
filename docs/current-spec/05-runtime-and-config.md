@@ -59,15 +59,15 @@
 
 ## 5.7 主要 NuGet パッケージ
 
-| パッケージ | バージョン | 移行先での扱い（[要件]/[未確定]） |
-|---|---|---|
-| EntityFramework | 6.2.0 | EF Core + Npgsql に置換 |
-| Autofac / Autofac.Web | 4.9.1 / 4.0.0 | ASP.NET Core 標準 DI に置換 |
-| log4net | 2.0.10 | `ILogger` + OpenTelemetry（Aspire ServiceDefaults）に置換 |
-| Microsoft.ApplicationInsights.* | 2.9.1 | ローカル段階では Aspire ダッシュボード（OTLP）に置換。Azure Monitor はデプロイ段階で検討 |
-| Microsoft.AspNet.Web.Optimization | 1.1.3 | 不要（静的アセットは ASP.NET Core の静的ファイル配信） |
-| Microsoft.AspNet.FriendlyUrls | 1.0.2 | 不要（未使用） |
-| Microsoft.AspNet.ScriptManager.* / MS Ajax / Modernizr / Respond | — | 不要 |
-| bootstrap | 4.3.1 | [未確定] 見た目維持のため継続するか、Blazor テンプレート既定の Bootstrap 5 に更新するか |
-| jQuery / popper.js | 3.5.0 / 1.14.3 | [未確定] Bootstrap の版に依存 |
-| Newtonsoft.Json | 12.0.1 | 直接利用なし。不要 |
+| パッケージ | バージョン |
+|---|---|
+| EntityFramework | 6.2.0 |
+| Autofac / Autofac.Web | 4.9.1 / 4.0.0 |
+| log4net | 2.0.10 |
+| Microsoft.ApplicationInsights.* | 2.9.1 |
+| Microsoft.AspNet.Web.Optimization | 1.1.3 |
+| Microsoft.AspNet.FriendlyUrls | 1.0.2 |
+| Microsoft.AspNet.ScriptManager.* / MS Ajax / Modernizr / Respond | — |
+| bootstrap | 4.3.1 |
+| jQuery / popper.js | 3.5.0 / 1.14.3 |
+| Newtonsoft.Json | 12.0.1 |
