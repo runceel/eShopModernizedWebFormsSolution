@@ -10,3 +10,5 @@ ADR は、複数の構成要素や将来の変更を拘束する判断につい�
 | [0002](0002-service-boundaries.md) | Accepted | Blazor Web と Catalog API を別サービスにする |
 | [0003](0003-persistence-and-initialization.md) | Accepted | PostgreSQL の永続化、初期化と明示的リセットを採用する |
 | [0004](0004-url-compatibility.md) | Accepted | 現行 URL を維持し、直接 `.aspx` アクセスも扱う |
+| [0005](0005-solution-layout.md) | Accepted | ソリューションとプロジェクトの配置、共有永続化の境界を定める |
+| [0006](0006-test-strategy.md) | Accepted | 単体・実 DB 統合・構成・限定 E2E で第 1 ゴールを確認する |

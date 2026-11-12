@@ -43,7 +43,7 @@
 | [OD-02 #3](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/3) | Web と HTTP/JSON API を分離する | API の具体的な契約 |
 | [OD-03 #4](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/4) | 商品 IDENTITY、組み込み初期 ID の維持 | 初期投入後の採番調整方法 |
 | [OD-04 #5](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/5) | Migrations、別の初期化サービス、明示的なリセット | 初期化判定、リセットの同期・復旧方法 |
-| [OD-05 #6](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/6) | アプリのモックモードは廃止する | テスト用の代替手段 |
+| [OD-05 #6](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/6) | アプリのモックモードは廃止し、テストは層に応じて代替または分離した PostgreSQL を使う | 実装・検証 |
 | [OD-06 #7](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/7) | Web ホスト名とセッション開始時刻を表示する | セッションの実現方法 |
 | [OD-07 #8](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/8) | 通常の停止・再起動で DB を保持する | 保存先の指定と整理手順 |
 | [OD-08 #9](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/9) | Fluent UI Blazor 5.0.1 を使用する | コンポーネントの選定と互換性確認 |
@@ -54,8 +54,8 @@
 | [OD-13 #14](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/14) | 同時更新を検知し、上書きせず通知する | 競合時の API 契約と画面操作 |
 | [OD-14 #15](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/15) | CSV・画像 ZIP を初期化とリセットで利用できる | 設定方法やファイル配置 |
 | [OD-15 #16](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/16) | About・Contact の直接 URL と内容を維持する | その他の未使用資産の扱い |
-| [OD-16 #17](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/17) | Web、API、初期化サービスを分離する | プロジェクト名とディレクトリ配置 |
-| [OD-17 #18](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/18) | [受け入れ基準](04-acceptance-criteria.md) を確認する | 自動化の範囲とツール |
+| [OD-16 #17](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/17) | [配置と責務](01-technical-spec.md#ソリューションとプロジェクトの配置)を決める | プロジェクトの実装とルート起動の確認 |
+| [OD-17 #18](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/18) | [テスト層と自動化範囲](03-quality-and-operations.md#テストと対象外)を決める | ツールの互換性、テスト実装・実行と未決定仕様の確認 |
 | [OD-18 #19](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/19) | 既存 URL、画像 URL、直接 `.aspx` URL を維持する | その他の異常時の詳細 |
 | [OD-19 #20](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/20) | 基本機能と現行挙動を維持する | 合意済み例外以外の個別確認 |
 | [OD-20 #21](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/21) | Aspire のローカル起動とリセットコマンド | リソース名、コマンド引数、監視・対応環境 |

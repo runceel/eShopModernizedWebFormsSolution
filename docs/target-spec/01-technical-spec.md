@@ -32,6 +32,31 @@ flowchart LR
 初期化が正常に終わる前に API が通常のカタログ操作を受け付けない。画像の配信に必要なアクセス経路は実装時に決定するが、Web が DB へ直接アクセスする構成にはしない。
 サービス分離の判断は [ADR 0002](../adr/0002-service-boundaries.md) を参照する。
 
+## ソリューションとプロジェクトの配置
+
+移行先リポジトリに次の構成を設ける。これは設計であり、プロジェクトはまだ存在しない。[ADR 0005](../adr/0005-solution-layout.md) に選択理由を記録する。
+
+```text
+eShopModernizedWebFormsSolution.slnx
+src/
+  eShop.AppHost/                 Aspire の構成・起動
+  eShop.ServiceDefaults/         共通のサービス設定
+  eShop.Web/                     Blazor Web
+  eShop.CatalogApi/              Catalog API
+  eShop.CatalogData/             カタログ永続化・EF Core Migrations
+  eShop.CatalogInit/             独立した初期化サービス
+tests/
+  eShop.UnitTests/
+  eShop.CatalogApi.IntegrationTests/
+  eShop.AppHost.Tests/
+  eShop.BrowserTests/
+docs/                            既存の仕様・ADR
+```
+
+`.slnx` に上記プロジェクトを登録する。`CatalogData` は API と初期化サービスが共有する DB モデルと Migrations の所有者であり、API と初期化サービスから参照する。Web はこのライブラリを参照せず、カタログの読み書きには API を使う。画面と API の境界を DB モデルに結び付けず、共有 DTO ライブラリの追加は必要性が確認されるまで行わない。AppHost はサービスと DB の構成・依存関係を記述し、ServiceDefaults は適用するサービスに共通設定を提供する。初期化サービスは API と別の実行単位とする。
+
+リポジトリルートで `aspire run` を実行する。AppHost が一つの場合、Aspire CLI は配下から発見できる。明示的に指定する場合は `aspire run --apphost src/eShop.AppHost/eShop.AppHost.csproj` とする。CLI の保存済み選択や複数 AppHost がある場合は明示指定を使う。ルートからの実動作は実装後に確認する。探索順は [Aspire CLI のリファレンス](https://aspire.dev/reference/cli/commands/aspire-run/) を参照。
+
 ## Web と UI
 
 - ランタイムは .NET 11、UI は Blazor と `Microsoft.FluentUI.AspNetCore.Components` 5.0.1 を使用する。
@@ -45,7 +70,7 @@ flowchart LR
 - 商品、ブランド、タイプとそれらの関連・業務項目は [現行データ仕様](../current-spec/04-data.md) を基準に維持する。商品画像のファイル名はカタログデータとして保持し、画像本体は DB に格納しない。
 - 新規商品の ID は PostgreSQL IDENTITY で採番する。組み込み初期商品の ID は 1〜12 を維持し、初期投入・リセット後の新規 ID は既存 ID と衝突しないようにする。
 - 商品名や価格の制約・精度は現行 DB の仕様を基準とする。現行の `decimal(18,2)` 等には静的解析上の推定が含まれるため、PostgreSQL の物理型・命名と合わせて [OD-09](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/10)、[OD-21](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/22) で確認する。
-- アプリケーションのインメモリ・モックモードは設けない。テスト用の代替手段は [OD-17](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/18) で検討する。
+- アプリケーションのインメモリ・モックモードは設けない。テストの代替や実 DB の分離は[テスト方針](03-quality-and-operations.md#テストと対象外)に従う。
 
 ## 起動時の初期化
 
@@ -67,4 +92,4 @@ flowchart LR
 
 ## 未決定の詳細
 
-API のエンドポイント・応答形式の詳細、DB 物理名・型、プロジェクト名・配置、リセットの実装方式はそれぞれ関連 Issue で決定する。HTTP ステータスやデータベースの内部実装を、この文書から推測して確定扱いしない。
+API のエンドポイント・応答形式の詳細、DB 物理名・型、リセットの実装方式はそれぞれ関連 Issue で決定する。HTTP ステータスやデータベースの内部実装を、この文書から推測して確定扱いしない。

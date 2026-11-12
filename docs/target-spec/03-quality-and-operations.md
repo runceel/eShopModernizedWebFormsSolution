@@ -35,4 +35,19 @@ CLI の確認方法、非対話実行での明示的な確認の渡し方、Dash
 
 ## テストと対象外
 
-[受け入れ基準](04-acceptance-criteria.md) は仕様の確認項目であり、すべての自動化や特定ツールの採用を決めるものではない。テスト対象と実行方法は [OD-17](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/18) で決める。公開環境の運用・バックアップ・復旧・認証は次段階の検討対象とする。
+第 1 ゴールでは以下を自動化する。各 AC と層の対応は[受け入れ基準](04-acceptance-criteria.md#自動テストの対応)を参照する。ツールと層の選択理由は [ADR 0006](../adr/0006-test-strategy.md) に記録する。
+
+| 層・プロジェクト | 責務と実行方法 |
+|---|---|
+| 単体 `eShop.UnitTests` | xUnit で入力境界、初期化入力の検証、競合・復旧の判断等を分離して検証する。外部依存はテスト用代替を使用できるが、アプリのモックモードは設けない |
+| API 統合 `eShop.CatalogApi.IntegrationTests` | xUnit、ASP.NET Core の `WebApplicationFactory` と Testcontainers for .NET の専用 PostgreSQL で実 API・EF Core・Migrations を通す。CRUD、検証、採番、ページング、保持項目、競合を確認し、DB をインメモリ実装に置き換えない |
+| 構成・運用 `eShop.AppHost.Tests` | xUnit と `Aspire.Hosting.Testing` を基本に実 AppHost、API、初期化サービス、専用 PostgreSQL と画像領域を使い、起動順、初期化、永続化とリセット・失敗復旧を確認する。確認操作は実際に提供される Aspire コマンド経路も検証する |
+| ブラウザー `eShop.BrowserTests` | Playwright for .NET と xUnit で実 Web・API・DB を使い、Interactive Server の操作、既存 URL と画像、重要な CRUD・ページング・検証・競合・出力エンコード・フッターを少数のシナリオで確認する。HTTP ステータスや URL 維持も確認する |
+
+既存の移行先にはアプリ・テストプロジェクトがなく、調査した現行リポジトリのソリューションにもテストプロジェクトはないため、xUnit、Testcontainers、Playwright は既存標準ではなく採用方針である。対応する .NET 11、Aspire、ブラウザーおよびパッケージの互換性・バージョンは実装時に確認する。
+
+各層はリポジトリルートで `dotnet test tests/<プロジェクト名>/<プロジェクト名>.csproj` により個別に実行し、全層は `dotnet test eShopModernizedWebFormsSolution.slnx` で実行する。SDK、Aspire CLI、対応コンテナランタイムと Playwright ブラウザーが必要な層を明示し、依存の不足やテスト失敗を成功扱いしない。実際のコマンド・前提はプロジェクト作成後に検証する。
+
+API 統合・構成・ブラウザーテストでは、開発用 DB や画像を再利用しない。テスト実行ごとに識別できる専用の DB、ボリュームと一時画像領域を用意し、対象を検証してから破壊操作を行う。並列実行は相互干渉しないよう分離し、再起動テスト内では同じテスト専用の永続領域を保持する。テスト後の削除もその実行が作成した領域に限定する。リセットの確認なし・キャンセル、不正入力、対象外 DB・画像の保持、実行中の利用停止、失敗注入と復旧不能時の再起動後の停止を検証する。未決定のコマンド名や復旧実装は仮定しない。
+
+ブラウザーでは全入力組合せを網羅せず、詳細な境界値・失敗経路は単体、API 統合または構成テストに置く。未決定の精度や異常時ステータス、CLI の確認方法は関連 Issue の決定後に具体化する。公開環境の運用・バックアップ・復旧・認証は次段階の検討対象とする。
