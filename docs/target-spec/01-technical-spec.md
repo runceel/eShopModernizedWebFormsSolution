@@ -69,8 +69,26 @@ docs/                            既存の仕様・ADR
 - API は EF Core と Npgsql を使って PostgreSQL にアクセスし、スキーマを EF Core Migrations で管理する。
 - 商品、ブランド、タイプとそれらの関連・業務項目は [現行データ仕様](../current-spec/04-data.md) を基準に維持する。商品画像のファイル名はカタログデータとして保持し、画像本体は DB に格納しない。
 - 新規商品の ID は PostgreSQL IDENTITY で採番する。組み込み初期商品の ID は 1〜12 を維持し、初期投入・リセット後の新規 ID は既存 ID と衝突しないようにする。
-- 商品名や価格の制約・精度は現行 DB の仕様を基準とする。現行の `decimal(18,2)` 等には静的解析上の推定が含まれるため、PostgreSQL の物理型・命名と合わせて [OD-09](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/10)、[OD-21](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/22) で確認する。
+- 商品名や価格の制約・精度は現行 DB の仕様を基準とする。現行の `decimal(18,2)` 等には静的解析上の推定が含まれるため、PostgreSQL の物理型・制約は [OD-21](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/22) で確認する。
 - アプリケーションのインメモリ・モックモードは設けない。テストの代替や実 DB の分離は[テスト方針](03-quality-and-operations.md#テストと対象外)に従う。
+
+### PostgreSQL の物理命名
+
+アプリが所有するテーブル・列・制約・インデックスは、英小文字の `snake_case` を用いる。PostgreSQL では引用符なしの識別子が小文字に正規化されるため、現行の PascalCase を引用して維持する案より、SQL での引用と大文字小文字の取り違えを減らせる。テーブル名は現行の単数形を保つ。
+
+| 論理データ（現行名） | 移行先テーブル | 列の対応（現行名 → 物理名） |
+|---|---|---|
+| 商品 `Catalog` | `catalog` | `Id` → `id`、`Name` → `name`、`Description` → `description`、`Price` → `price`、`PictureFileName` → `picture_file_name`、`CatalogTypeId` → `catalog_type_id`、`CatalogBrandId` → `catalog_brand_id`、`AvailableStock` → `available_stock`、`RestockThreshold` → `restock_threshold`、`MaxStockThreshold` → `max_stock_threshold`、`OnReorder` → `on_reorder` |
+| ブランド `CatalogBrand` | `catalog_brand` | `Id` → `id`、`Brand` → `brand` |
+| タイプ `CatalogType` | `catalog_type` | `Id` → `id`、`Type` → `type` |
+
+`PictureUri` は現行と同じく DB 列にしない。物理名の変更は論理項目、初期商品 ID、画像 URL、CSV の既存形式や画面表示名を変更するものではなく、API 契約も決めない。
+
+アプリが定義するオブジェクトの名前は、主キーを `pk_<テーブル>`、外部キーを `fk_<従属テーブル>_<参照テーブル>_<従属列>`、インデックスを `ix_<テーブル>_<列>`、一意制約を `uq_<テーブル>_<列>`、チェック制約を `ck_<テーブル>_<意味>` とする。複数列は定義順に列名を `_` で連結する。例えば `pk_catalog`、`fk_catalog_catalog_brand_catalog_brand_id`、`ix_catalog_catalog_brand_id` とする。これは存在することになったオブジェクトの命名規約であり、インデックス・一意制約・チェック制約の新設や削除を決めるものではない。PostgreSQL の識別子長上限（通常 63 バイト）を超える名前は衝突しないよう明示的に短縮し、同一スキーマ内の名前の衝突を検証する。
+
+EF Core の共有永続化モデルにテーブル・列と、モデルが作成する制約・インデックスの物理名を明示して、API・初期化サービス・Migrations で同じマッピングを使う。Migrations の生成結果はレビューし、初回適用と後続変更の両方で名前を確認する。後日の改名はデータを失う削除・再作成と区別して移行を設計する。命名用プラグインへの依存は必須としない。EF Core の Migrations 履歴テーブルや PostgreSQL が管理する IDENTITY の内部シーケンスなど、フレームワーク・DB が管理する名前はこの規約の対象外とし、既定名を仮定してアプリから直接参照しない。
+
+現行 SQL Server の実データ移行は第 1 ゴールの対象外であり、既存 DB をこの命名に改名しない。将来の移行時には旧名と新名の対応、外部 SQL や参照先への影響を確認する。DB スキーマ名、物理型・制約と移行方式は引き続き [OD-21](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/22) の範囲とする。実装後、分離した PostgreSQL への Migrations 適用とカタログメタデータの照合で名前を検証する。
 
 ## 起動時の初期化
 
@@ -92,4 +110,4 @@ docs/                            既存の仕様・ADR
 
 ## 未決定の詳細
 
-API のエンドポイント・応答形式の詳細、DB 物理名・型、リセットの実装方式はそれぞれ関連 Issue で決定する。HTTP ステータスやデータベースの内部実装を、この文書から推測して確定扱いしない。
+API のエンドポイント・応答形式の詳細、DB スキーマ名・型・制約、リセットの実装方式はそれぞれ関連 Issue で決定する。HTTP ステータスやデータベースの内部実装を、この文書から推測して確定扱いしない。

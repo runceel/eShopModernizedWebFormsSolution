@@ -47,7 +47,7 @@
 | [OD-06 #7](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/7) | Web ホスト名とセッション開始時刻を表示する | セッションの実現方法 |
 | [OD-07 #8](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/8) | 通常の停止・再起動で DB を保持する | 保存先の指定と整理手順 |
 | [OD-08 #9](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/9) | Fluent UI Blazor 5.0.1 を使用する | コンポーネントの選定と互換性確認 |
-| [OD-09 #10](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/10) | 論理データを維持する | PostgreSQL の物理命名 |
+| [OD-09 #10](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/10) | 論理データを維持し、[PostgreSQL の物理名](01-technical-spec.md#postgresql-の物理命名)を小文字の snake_case に統一する | EF Core・Migrations の実装と実 DB での検証 |
 | [OD-10 #11](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/11) | セキュリティ・データ保護上の不具合を修正する | その他の KI ごとの扱い |
 | [OD-11 #12](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/12) | アプリ名は `Catalog manager` とする | ページごとの細部の表記 |
 | [OD-12 #13](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/13) | 第 1 ゴールのローカル利用ではログインなし | 公開・デプロイ時の認証・認可 |
