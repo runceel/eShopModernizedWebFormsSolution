@@ -39,6 +39,34 @@ flowchart LR
 - コンポーネントごとの適用、接続切断・再接続時の詳細、および .NET 11 との実動作は実装時に確認する。判断の背景は [ADR 0001](../adr/0001-blazor-rendering.md)。
 - フッターのマシン名は API ホストではなく **Blazor Web ホスト**の名前とする。同一セッション中はその開始時刻を表示する。セッションの維持方法は [OD-06](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/7) で決める。
 
+### 画面ごとのレンダリングと操作（OD-01）
+
+第 1 ゴールでは、次の全画面に合意済みの Interactive Server 基本方針を適用する。同じ画面の既存 URL 別名も同じ扱いとする。静的な内容であることと Static SSR の採用は区別し、About / Contact のための別モードや WebAssembly / Auto は導入しない。
+
+| 画面 | レンダリング | フォーム・操作 |
+|---|---|---|
+| 商品一覧（ページ指定を含む） | Interactive Server | 一覧の表示・ページ移動と、登録・詳細・編集・削除への遷移 |
+| 商品登録 | Interactive Server | 入力・検証後、API 経由で登録。成功後に一覧へ戻り、Cancel では保存しない |
+| 商品詳細 | Interactive Server | 商品を表示し、対象商品の編集または一覧へ遷移。更新フォームは持たない |
+| 商品編集 | Interactive Server | 現在値の入力・検証後、API 経由で更新。成功後に一覧へ戻り、Cancel では保存しない |
+| 商品削除確認 | Interactive Server | 明示的な Delete 操作で API 経由の削除を行い、成功後に一覧へ戻る。表示や Cancel だけでは削除しない |
+| About / Contact | Interactive Server | 現行の静的な内容を表示する。入力・更新フォームや新たなナビゲーションリンクは追加しない |
+
+`/Pics/{name}` は画面ではなく画像の HTTP 配信であり、Blazor のレンダリングモードを適用しない。ID のない商品 `.aspx` URL の HTTP 500 応答もインタラクティブ画面で代替しない。対象 URL と例外は[画面・機能仕様](02-functional-spec.md#画面と-url)に従う。
+
+登録・編集のフォーム操作と画面上の検証結果の反映は、Interactive Server のサーバー側で処理する。画面での入力チェックだけを保存の保証にせず、API でも入力を検証し、不正な入力では永続化しない。クライアント側の入力制約は補助であり、ブラウザー上の .NET 実行を前提にしない。検証エラーや API の失敗時は成功後の一覧遷移を行わず、失敗を利用者に通知する。検証項目・メッセージ・未決定の精度は[入力・検証](02-functional-spec.md#入力検証)に従い、ここでは追加の業務ルールを決めない。
+
+画面間は Blazor のルーティングで遷移し、URL に含まれる商品 ID とページ指定を遷移先に引き継ぐ。通常の画面操作を Web Forms のポストバックや Static SSR のフォーム送信を前提とした構成にはしない。既存 URL への直接アクセスでも同じ画面を表示し、URL を別名へリダイレクトしない。成功後・Cancel / Back to list・ヘッダーからの遷移先は[共通表示・遷移](02-functional-spec.md#共通表示遷移)を維持する。回線・サーバー接続と再接続が必要な実行モデルであり、その詳細およびセッションの維持方法は別途扱う。
+
+選定理由は、操作を伴う Fluent UI コンポーネントに必要なインタラクティビティを、サーバー側の実行モデルで提供するためである。Static SSR 基本案から変更した背景と接続管理のトレードオフは [ADR 0001](../adr/0001-blazor-rendering.md) に記録済みであり、この画面別整理はその判断を変更しない。
+
+### プロジェクト構成・自動テストへの影響
+
+- [OD-02（#3）](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/3): UI とその実行状態は Blazor Web に置き、サーバー側で動く画面から HTTP/JSON REST の Catalog API を呼ぶ。Interactive Server を理由に Web から DB へ直接アクセスしない。別の WebAssembly クライアントプロジェクトを要求せず、[ADR 0002](../adr/0002-service-boundaries.md) の責務境界を維持する。具体的なプロジェクト名・配置は [OD-16（#17）](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/17) の範囲であり、OD-01 では固定しない。
+- [OD-17（#18）](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/18): 初回の HTML 応答だけではフォーム・イベントの動作を確認できない。レンダリング方式から必要となる確認は、インタラクティブな操作が可能になってからの CRUD・画面上の検証・ページ移動・一覧復帰である。既存 URL の直接アクセス、About / Contact、画像、ID なし URL のステータスはブラウザー／HTTP でも確認する。クライアント検証を経由しない不正入力拒否も確認し、詳細な入力境界の全組合せを画面経由で重複させない。対象は既存の[受け入れ基準 AC-08〜17](04-acceptance-criteria.md#画面互換性) と対応する。具体的な自動化範囲・ツール・テスト層は OD-17 の責務とし、[同 Issue の採用方針コメント](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/18#issuecomment-6814702137)を参照する。OD-01 の記録ではテスト方針全体やプロジェクト配置を取り込まない。
+
+OD-01 はレンダリング方針の設計判断であり、各コンポーネントの選定、.NET 11 との互換性、接続切断・再接続の具体的な動作とテストの実装・実行が完了したことは意味しない。
+
 ## カタログデータ
 
 - API は EF Core と Npgsql を使って PostgreSQL にアクセスし、スキーマを EF Core Migrations で管理する。
