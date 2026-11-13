@@ -62,8 +62,8 @@ flowchart LR
 
 ### プロジェクト構成・自動テストへの影響
 
-- [OD-02（#3）](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/3): UI とその実行状態は Blazor Web に置き、サーバー側で動く画面から HTTP/JSON REST の Catalog API を呼ぶ。Interactive Server を理由に Web から DB へ直接アクセスしない。別の WebAssembly クライアントプロジェクトを要求せず、[既定のプロジェクト配置](#ソリューションとプロジェクトの配置)と [ADR 0002](../adr/0002-service-boundaries.md) の責務境界を維持する。
-- [OD-17（#18）](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/18): 初回の HTML 応答だけではフォーム・イベントの動作を確認できない。既定の Playwright for .NET による限定ブラウザーテストで、インタラクティブな操作が可能になってから CRUD・画面上の検証・ページ移動・一覧復帰を確認する。既存 URL の直接アクセス、About / Contact、画像、ID なし URL のステータスはブラウザー／HTTP でも確認する。検証の詳細とクライアント検証を経由しない不正入力拒否は単体・API 統合に置き、全組合せを E2E に重複させない。[ADR 0006](../adr/0006-test-strategy.md)、[テスト方針](03-quality-and-operations.md#テストと対象外)と AC-08〜17 の[層別対応](04-acceptance-criteria.md#自動テストの対応)に従う。
+- [OD-02（#3）](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/3): UI とその実行状態は Blazor Web に置き、サーバー側で動く画面から HTTP/JSON REST の Catalog API を呼ぶ。Interactive Server を理由に Web から DB へ直接アクセスしない。別の WebAssembly クライアントプロジェクトを要求せず、[ADR 0002](../adr/0002-service-boundaries.md) の責務境界を維持する。具体的なプロジェクト名・配置は [OD-16（#17）](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/17) の範囲であり、OD-01 では固定しない。
+- [OD-17（#18）](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/18): 初回の HTML 応答だけではフォーム・イベントの動作を確認できない。レンダリング方式から必要となる確認は、インタラクティブな操作が可能になってからの CRUD・画面上の検証・ページ移動・一覧復帰である。既存 URL の直接アクセス、About / Contact、画像、ID なし URL のステータスはブラウザー／HTTP でも確認する。クライアント検証を経由しない不正入力拒否も確認し、詳細な入力境界の全組合せを画面経由で重複させない。対象は既存の[受け入れ基準 AC-08〜17](04-acceptance-criteria.md#画面互換性) と対応する。具体的な自動化範囲・ツール・テスト層は OD-17 の責務とし、[同 Issue の採用方針コメント](https://github.com/runceel/eShopModernizedWebFormsSolution/issues/18#issuecomment-6814702137)を参照する。OD-01 の記録ではテスト方針全体やプロジェクト配置を取り込まない。
 
 OD-01 はレンダリング方針の設計判断であり、各コンポーネントの選定、.NET 11 との互換性、接続切断・再接続の具体的な動作とテストの実装・実行が完了したことは意味しない。
 
