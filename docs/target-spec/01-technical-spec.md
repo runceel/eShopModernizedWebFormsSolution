@@ -53,7 +53,7 @@ tests/
 docs/                            既存の仕様・ADR
 ```
 
-`.slnx` に上記プロジェクトを登録する。`CatalogData` は API と初期化サービスが共有する DB モデルと Migrations の所有者であり、API と初期化サービスから参照する。Web はこのライブラリを参照せず、カタログの読み書きには API を使う。画面と API の境界を DB モデルに結び付けず、共有 DTO ライブラリの追加は必要性が確認されるまで行わない。AppHost はサービスと DB の構成・依存関係を記述し、ServiceDefaults は適用するサービスに共通設定を提供する。初期化サービスは API と別の実行単位とする。
+`.slnx` に上記プロジェクトを登録する。初期スケルトンと AppHost のリソース配線があり、現時点で初期化サービスは PostgreSQL 接続確認のみを行う。EF Core Migrations、スキーマ、シードデータ、カタログ API・画面は未実装である。`CatalogData` は API と初期化サービスが共有する DB モデルと Migrations の所有者であり、API と初期化サービスから参照する。Web はこのライブラリを参照せず、カタログの読み書きには API を使う。画面と API の境界を DB モデルに結び付けず、共有 DTO ライブラリの追加は必要性が確認されるまで行わない。AppHost はサービスと DB の構成・依存関係を記述し、ServiceDefaults は適用するサービスに共通設定を提供する。初期化サービスは API と別の実行単位とする。
 
 リポジトリルートで `aspire run` を実行する。AppHost が一つの場合、Aspire CLI は配下から発見できる。明示的に指定する場合は `aspire run --apphost src/eShop.AppHost/eShop.AppHost.csproj` とする。CLI の保存済み選択や複数 AppHost がある場合は明示指定を使う。ルートからの実動作は実装後に確認する。探索順は [Aspire CLI のリファレンス](https://aspire.dev/reference/cli/commands/aspire-run/) を参照。
 

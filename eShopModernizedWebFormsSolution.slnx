@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="src\eShop.AppHost\eShop.AppHost.csproj" />
+  <Project Path="src\eShop.ServiceDefaults\eShop.ServiceDefaults.csproj" />
+  <Project Path="src\eShop.Web\eShop.Web.csproj" />
+  <Project Path="src\eShop.CatalogApi\eShop.CatalogApi.csproj" />
+  <Project Path="src\eShop.CatalogData\eShop.CatalogData.csproj" />
+  <Project Path="src\eShop.CatalogInit\eShop.CatalogInit.csproj" />
+</Solution>
