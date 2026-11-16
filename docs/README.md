@@ -2,7 +2,7 @@
 
 ASP.NET Web Forms アプリ **eShopLegacyWebForms**（リポジトリ `runceel/eShopLegacyWebFormsSolution`）の
 現行仕様と、移行先について合意した仕様を分けて管理します。
-移行先仕様は実装・動作確認の完了を意味しません。未決定事項は [GitHub Issues](https://github.com/runceel/eShopModernizedWebFormsSolution/issues) で検討します。
+移行先仕様は設計判断の記録であり、実装・実行・受け入れ確認の完了を意味しません。決定済みの範囲と実装時に確認する項目を分けて記載します。
 
 ## 現行仕様
 
@@ -23,8 +23,11 @@ ASP.NET Web Forms アプリ **eShopLegacyWebForms**（リポジトリ `runceel/e
 3. [画面・機能仕様](target-spec/02-functional-spec.md)
 4. [品質・ローカル運用](target-spec/03-quality-and-operations.md)
 5. [受け入れ基準](target-spec/04-acceptance-criteria.md)
+6. [既知事項の移行方針](target-spec/05-known-issues-policy.md)
 
 重要な設計判断の背景と選択肢は [ADR](adr/README.md) に記録します。
+
+OD-01（#2）の判断は PR [#25](https://github.com/runceel/eShopModernizedWebFormsSolution/pull/25) で `main` に統合済みです。本書のほかの移行先仕様も設計記録であり、アプリの実装・ランタイム検証は別途必要です。
 
 ## 調査対象
 
