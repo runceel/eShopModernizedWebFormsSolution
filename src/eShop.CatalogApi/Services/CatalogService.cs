@@ -60,6 +60,22 @@ internal sealed class CatalogService(CatalogDbContext dbContext) : ICatalogServi
             totalItems == 0 ? 0 : (totalItems + pageSize - 1) / pageSize);
     }
 
+    public async Task<IReadOnlyList<CatalogBrandResponse>> GetBrandsAsync(
+        CancellationToken cancellationToken) =>
+        await dbContext.CatalogBrands
+            .AsNoTracking()
+            .OrderBy(brand => brand.Id)
+            .Select(brand => new CatalogBrandResponse(brand.Id, brand.Brand))
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<CatalogTypeResponse>> GetTypesAsync(
+        CancellationToken cancellationToken) =>
+        await dbContext.CatalogTypes
+            .AsNoTracking()
+            .OrderBy(type => type.Id)
+            .Select(type => new CatalogTypeResponse(type.Id, type.Type))
+            .ToListAsync(cancellationToken);
+
     public async Task<CatalogItemResult?> GetByIdAsync(
         int id,
         CancellationToken cancellationToken)

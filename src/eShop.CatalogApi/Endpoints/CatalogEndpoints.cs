@@ -14,6 +14,16 @@ internal static class CatalogEndpoints
         var group = app.MapGroup("/api/catalog")
             .WithTags("Catalog");
 
+        group.MapGet("/brands", GetBrandsAsync)
+            .WithName("GetCatalogBrands")
+            .WithSummary("List catalog brands")
+            .Produces<IReadOnlyList<CatalogBrandResponse>>();
+
+        group.MapGet("/types", GetTypesAsync)
+            .WithName("GetCatalogTypes")
+            .WithSummary("List catalog types")
+            .Produces<IReadOnlyList<CatalogTypeResponse>>();
+
         group.MapGet("", GetPageAsync)
             .WithName("GetCatalogPage")
             .WithSummary("List catalog items")
@@ -57,6 +67,16 @@ internal static class CatalogEndpoints
 
         return group;
     }
+
+    private static async Task<Ok<IReadOnlyList<CatalogBrandResponse>>> GetBrandsAsync(
+        ICatalogService catalogService,
+        CancellationToken cancellationToken) =>
+        TypedResults.Ok(await catalogService.GetBrandsAsync(cancellationToken));
+
+    private static async Task<Ok<IReadOnlyList<CatalogTypeResponse>>> GetTypesAsync(
+        ICatalogService catalogService,
+        CancellationToken cancellationToken) =>
+        TypedResults.Ok(await catalogService.GetTypesAsync(cancellationToken));
 
     private static async Task<Ok<CatalogItemPageResponse>> GetPageAsync(
         ICatalogService catalogService,

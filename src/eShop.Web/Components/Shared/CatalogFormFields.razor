@@ -1,0 +1,88 @@
+<div class="form-grid">
+    <div class="form-field">
+        <label for="catalog-name">Name</label>
+        <InputText id="catalog-name" class="form-input" maxlength="50" @bind-Value="Model.Name" />
+        <ValidationMessage For="@(() => Model.Name)" />
+    </div>
+
+    <div class="form-field">
+        <label for="catalog-description">Description</label>
+        <InputTextArea id="catalog-description" class="form-input" rows="3" @bind-Value="Model.Description" />
+        <ValidationMessage For="@(() => Model.Description)" />
+    </div>
+
+    <div class="form-field">
+        <label for="catalog-brand">Brand</label>
+        <InputSelect id="catalog-brand" class="form-input" @bind-Value="Model.CatalogBrandId">
+            @foreach (var brand in Brands)
+            {
+                <option value="@brand.Id">@brand.Brand</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="@(() => Model.CatalogBrandId)" />
+    </div>
+
+    <div class="form-field">
+        <label for="catalog-type">Type</label>
+        <InputSelect id="catalog-type" class="form-input" @bind-Value="Model.CatalogTypeId">
+            @foreach (var type in Types)
+            {
+                <option value="@type.Id">@type.Type</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="@(() => Model.CatalogTypeId)" />
+    </div>
+
+    <div class="form-field">
+        <label for="catalog-price">Price</label>
+        <InputNumber id="catalog-price" class="form-input" step="0.01" @bind-Value="Model.Price" />
+        <ValidationMessage For="@(() => Model.Price)" />
+    </div>
+
+    <div class="form-field">
+        <label>Picture name</label>
+        @if (IsEditing)
+        {
+            <input class="form-input" value="@PictureFileName" readonly title="Not allowed for edition" />
+        }
+        else
+        {
+            <p class="field-note">Uploading images not allowed for this version.</p>
+        }
+    </div>
+
+    <div class="form-field">
+        <label for="catalog-stock">Stock</label>
+        <InputNumber id="catalog-stock" class="form-input" @bind-Value="Model.AvailableStock" />
+        <ValidationMessage For="@(() => Model.AvailableStock)" />
+    </div>
+
+    <div class="form-field">
+        <label for="catalog-restock">Restock</label>
+        <InputNumber id="catalog-restock" class="form-input" @bind-Value="Model.RestockThreshold" />
+        <ValidationMessage For="@(() => Model.RestockThreshold)" />
+    </div>
+
+    <div class="form-field">
+        <label for="catalog-max-stock">Max stock</label>
+        <InputNumber id="catalog-max-stock" class="form-input" @bind-Value="Model.MaxStockThreshold" />
+        <ValidationMessage For="@(() => Model.MaxStockThreshold)" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public CatalogFormModel Model { get; set; } = null!;
+
+    [Parameter]
+    public IReadOnlyList<CatalogBrandDto> Brands { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<CatalogTypeDto> Types { get; set; } = [];
+
+    [Parameter]
+    public bool IsEditing { get; set; }
+
+    [Parameter]
+    public string? PictureFileName { get; set; }
+}

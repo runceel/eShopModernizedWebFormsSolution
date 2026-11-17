@@ -1,7 +1,244 @@
 ﻿@page "/"
+@page "/catalog"
+@inject CatalogApiClient CatalogApi
+@inject NavigationManager Navigation
 
-<PageTitle>Catalog manager</PageTitle>
+<PageTitle>Home Page - Catalog manager</PageTitle>
 
-<h1>Catalog manager</h1>
+<FluentStack Orientation="Orientation.Vertical" Class="page-stack">
+    <div class="page-heading">
+        <div>
+            <p class="eyebrow">CATALOG</p>
+            <h1>Catalog manager</h1>
+        </div>
+        <FluentButton Appearance="ButtonAppearance.Primary" OnClick="CreateNew">
+            Create New
+        </FluentButton>
+    </div>
 
-<p>The Web host is running. Aspire starts the Catalog API after PostgreSQL readiness is verified.</p>
+    <FluentCard class="catalog-card">
+        @if (isLoading)
+        {
+            <p role="status">Loading catalog...</p>
+        }
+        else if (!string.IsNullOrWhiteSpace(loadError))
+        {
+            <p class="status-error" role="alert">@loadError</p>
+            <FluentButton Appearance="ButtonAppearance.Primary" OnClick="LoadAsync">Retry</FluentButton>
+        }
+        else
+        {
+            <div class="catalog-filters">
+                <div class="filter-field search-field">
+                    <label for="catalog-search">Search</label>
+                    <input id="catalog-search"
+                           type="search"
+                           @bind="searchText"
+                           @bind:event="oninput"
+                           @bind:after="ResetPage" />
+                </div>
+                <div class="filter-field">
+                    <label for="brand-filter">Brand</label>
+                    <select id="brand-filter" @bind="brandFilter" @bind:after="ResetPage">
+                        <option value="">All brands</option>
+                        @foreach (var brand in brands)
+                        {
+                            <option value="@brand.Id">@brand.Brand</option>
+                        }
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="type-filter">Type</label>
+                    <select id="type-filter" @bind="typeFilter" @bind:after="ResetPage">
+                        <option value="">All types</option>
+                        @foreach (var type in types)
+                        {
+                            <option value="@type.Id">@type.Type</option>
+                        }
+                    </select>
+                </div>
+                <div class="filter-field">
+                    <label for="sort-order">Sort by</label>
+                    <select id="sort-order" @bind="sortOrder" @bind:after="ResetPage">
+                        <option value="id">ID</option>
+                        <option value="name">Name</option>
+                        <option value="price-low">Price: low to high</option>
+                        <option value="price-high">Price: high to low</option>
+                    </select>
+                </div>
+            </div>
+
+            var filteredItems = GetFilteredItems();
+            var visibleItems = filteredItems
+                .Skip(pageIndex * PageSize)
+                .Take(PageSize)
+                .ToArray();
+            var totalPages = filteredItems.Count == 0
+                ? 0
+                : (filteredItems.Count + PageSize - 1) / PageSize;
+
+            @if (visibleItems.Length == 0)
+            {
+                <p class="empty-state">No data was returned.</p>
+            }
+            else
+            {
+                <div class="table-scroll">
+                    <table class="catalog-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Image</th>
+                                <th scope="col">Name</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Brand</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Price</th>
+                                <th scope="col">Picture name</th>
+                                <th scope="col">Stock</th>
+                                <th scope="col">Restock</th>
+                                <th scope="col">Max stock</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in visibleItems)
+                            {
+                                <tr>
+                                    <td>
+                                        <img class="catalog-thumbnail"
+                                             src="@ImageUrl(item.PictureFileName)"
+                                             alt="@item.Name" />
+                                    </td>
+                                    <td>@item.Name</td>
+                                    <td>@item.Description</td>
+                                    <td>@item.CatalogBrand</td>
+                                    <td>@item.CatalogType</td>
+                                    <td>@item.Price.ToString("C2", EnUs)</td>
+                                    <td>@item.PictureFileName</td>
+                                    <td>@item.AvailableStock</td>
+                                    <td>@item.RestockThreshold</td>
+                                    <td>@item.MaxStockThreshold</td>
+                                    <td class="row-actions">
+                                        <a href="@($"/Catalog/Edit/{item.Id}")">Edit</a>
+                                        <a href="@($"/Catalog/Details/{item.Id}")">Details</a>
+                                        <a href="@($"/Catalog/Delete/{item.Id}")">Delete</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pager">
+                    <p>Showing @PageSize of @filteredItems.Count products - Page @(pageIndex + 1) - @totalPages</p>
+                    <div class="pager-actions">
+                        <FluentButton Disabled="@(pageIndex == 0)" OnClick="PreviousPage">Previous</FluentButton>
+                        <FluentButton Disabled="@(pageIndex >= totalPages - 1)" OnClick="NextPage">Next</FluentButton>
+                    </div>
+                </div>
+            }
+        }
+    </FluentCard>
+</FluentStack>
+
+@code {
+    private static readonly CultureInfo EnUs = CultureInfo.GetCultureInfo("en-US");
+    private const int PageSize = 10;
+
+    private IReadOnlyList<CatalogItemDto> items = [];
+    private IReadOnlyList<CatalogBrandDto> brands = [];
+    private IReadOnlyList<CatalogTypeDto> types = [];
+    private string searchText = string.Empty;
+    private string brandFilter = string.Empty;
+    private string typeFilter = string.Empty;
+    private string sortOrder = "id";
+    private int pageIndex;
+    private bool isLoading = true;
+    private string? loadError;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        loadError = null;
+        try
+        {
+            var itemsTask = CatalogApi.GetAllAsync();
+            var brandsTask = CatalogApi.GetBrandsAsync();
+            var typesTask = CatalogApi.GetTypesAsync();
+            await Task.WhenAll(itemsTask, brandsTask, typesTask);
+            items = await itemsTask;
+            brands = await brandsTask;
+            types = await typesTask;
+            pageIndex = 0;
+        }
+        catch (CatalogApiClientException exception)
+        {
+            loadError = exception.Message;
+        }
+        catch (HttpRequestException)
+        {
+            loadError = "The Catalog API is unavailable. Try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private IReadOnlyList<CatalogItemDto> GetFilteredItems()
+    {
+        IEnumerable<CatalogItemDto> query = items;
+
+        if (!string.IsNullOrWhiteSpace(searchText))
+        {
+            query = query.Where(item =>
+                Contains(item.Name, searchText)
+                || Contains(item.Description, searchText)
+                || Contains(item.CatalogBrand, searchText)
+                || Contains(item.CatalogType, searchText)
+                || Contains(item.PictureFileName, searchText));
+        }
+
+        if (int.TryParse(brandFilter, out var brandId))
+        {
+            query = query.Where(item => item.CatalogBrandId == brandId);
+        }
+
+        if (int.TryParse(typeFilter, out var typeId))
+        {
+            query = query.Where(item => item.CatalogTypeId == typeId);
+        }
+
+        query = sortOrder switch
+        {
+            "name" => query.OrderBy(item => item.Name, StringComparer.OrdinalIgnoreCase).ThenBy(item => item.Id),
+            "price-low" => query.OrderBy(item => item.Price).ThenBy(item => item.Id),
+            "price-high" => query.OrderByDescending(item => item.Price).ThenBy(item => item.Id),
+            _ => query.OrderBy(item => item.Id)
+        };
+
+        return query.ToArray();
+    }
+
+    private static bool Contains(string? value, string search) =>
+        value?.Contains(search, StringComparison.OrdinalIgnoreCase) == true;
+
+    private static string ImageUrl(string fileName) => $"/Pics/{Uri.EscapeDataString(fileName)}";
+
+    private void ResetPage() => pageIndex = 0;
+
+    private void PreviousPage() => pageIndex = Math.Max(0, pageIndex - 1);
+
+    private void NextPage()
+    {
+        var totalPages = (GetFilteredItems().Count + PageSize - 1) / PageSize;
+        if (pageIndex < totalPages - 1)
+        {
+            pageIndex++;
+        }
+    }
+
+    private void CreateNew() => Navigation.NavigateTo("/Catalog/Create");
+}

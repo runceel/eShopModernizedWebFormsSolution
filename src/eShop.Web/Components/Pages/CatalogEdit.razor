@@ -1,0 +1,238 @@
+@page "/Catalog/Edit/{Id:int}"
+@inject CatalogApiClient CatalogApi
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<PageTitle>Edit - Catalog manager</PageTitle>
+
+<NavigationLock OnBeforeInternalNavigation="BeforeInternalNavigationAsync" />
+
+<FluentCard class="catalog-card form-card">
+    <h1>Edit</h1>
+    @if (isLoading)
+    {
+        <p role="status">Loading product...</p>
+    }
+    else if (editContext is null)
+    {
+        <p class="status-error" role="alert">@errorMessage</p>
+        <a class="action-link secondary-link" href="/">Cancel</a>
+    }
+    else
+    {
+        @if (isConcurrencyConflict)
+        {
+            <div class="conflict-banner" role="alert">
+                <p>The product changed after you loaded it. Your edits have not been saved.</p>
+                <FluentButton OnClick="ReloadLatestAsync" Disabled="@isBusy">Reload latest</FluentButton>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <p class="status-error" role="alert">@errorMessage</p>
+        }
+
+        <div class="edit-product-image">
+            <img class="product-image" src="@ImageUrl" alt="@item!.Name" />
+        </div>
+        <EditForm EditContext="editContext" OnSubmit="SubmitAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <CatalogFormFields @key="model"
+                               Model="model"
+                               Brands="brands"
+                               Types="types"
+                               IsEditing="true"
+                               PictureFileName="@item!.PictureFileName" />
+            <div class="form-actions">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              Type="ButtonType.Submit"
+                              Disabled="@isBusy">
+                    @(isSaving ? "Saving..." : "Save")
+                </FluentButton>
+                <FluentButton OnClick="Cancel" Disabled="@isBusy">Cancel</FluentButton>
+            </div>
+        </EditForm>
+    }
+</FluentCard>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private CatalogItemDto? item;
+    private CatalogFormModel model = new();
+    private IReadOnlyList<CatalogBrandDto> brands = [];
+    private IReadOnlyList<CatalogTypeDto> types = [];
+    private EditContext? editContext;
+    private ValidationMessageStore? serverMessages;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool isReloading;
+    private bool isConcurrencyConflict;
+    private bool allowNavigation;
+    private string? errorMessage;
+
+    private bool isBusy => isSaving || isReloading;
+
+    private string? ImageUrl => item is null
+        ? null
+        : $"/Pics/{Uri.EscapeDataString(item.PictureFileName)}";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var itemTask = CatalogApi.GetByIdAsync(Id);
+            var brandsTask = CatalogApi.GetBrandsAsync();
+            var typesTask = CatalogApi.GetTypesAsync();
+            await Task.WhenAll(itemTask, brandsTask, typesTask);
+            brands = await brandsTask;
+            types = await typesTask;
+            SetCurrentItem(await itemTask);
+        }
+        catch (CatalogApiClientException exception)
+        {
+            item = null;
+            editContext = null;
+            errorMessage = exception.StatusCode == System.Net.HttpStatusCode.NotFound
+                ? "No catalog item exists with the requested ID."
+                : exception.Message;
+        }
+        catch (HttpRequestException)
+        {
+            item = null;
+            editContext = null;
+            errorMessage = "The Catalog API is unavailable. Try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void SetCurrentItem(CatalogItemWithETag current)
+    {
+        item = current.Item;
+        model = CatalogFormModel.From(current.Item);
+        EntityTag = current.ETag;
+        editContext = new EditContext(model);
+        serverMessages = new ValidationMessageStore(editContext);
+        isConcurrencyConflict = false;
+        errorMessage = null;
+    }
+
+    private string EntityTag { get; set; } = string.Empty;
+
+    private async Task SubmitAsync(EditContext context)
+    {
+        serverMessages!.Clear();
+        errorMessage = null;
+        context.NotifyValidationStateChanged();
+        if (!await context.ValidateAsync())
+        {
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            await CatalogApi.UpdateAsync(Id, model.ToRequest(), EntityTag);
+            allowNavigation = true;
+            Navigation.NavigateTo("/");
+        }
+        catch (CatalogApiClientException exception)
+        {
+            ApplyServerErrors(exception);
+            isConcurrencyConflict = exception.StatusCode == System.Net.HttpStatusCode.Conflict
+                && exception.Code == "catalog_concurrency_conflict";
+            errorMessage = exception.Message;
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "The Catalog API is unavailable. Your edits are still here.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ApplyServerErrors(CatalogApiClientException exception)
+    {
+        foreach (var (field, messages) in exception.Errors)
+        {
+            var property = typeof(CatalogFormModel).GetProperties()
+                .FirstOrDefault(candidate => string.Equals(candidate.Name, field, StringComparison.OrdinalIgnoreCase));
+            var identifier = new FieldIdentifier(model, property?.Name ?? string.Empty);
+            foreach (var message in messages)
+            {
+                serverMessages!.Add(identifier, message);
+            }
+        }
+
+        editContext!.NotifyValidationStateChanged();
+    }
+
+    private async Task ReloadLatestAsync()
+    {
+        if (!await ConfirmDiscardAsync(
+                "Discard your unsaved changes and load the latest version?"))
+        {
+            return;
+        }
+
+        isReloading = true;
+        errorMessage = null;
+        try
+        {
+            SetCurrentItem(await CatalogApi.GetByIdAsync(Id));
+        }
+        catch (CatalogApiClientException exception)
+        {
+            errorMessage = exception.StatusCode == System.Net.HttpStatusCode.NotFound
+                ? "This product is no longer available. Your edits are still here."
+                : $"Could not load the latest product. Your edits are still here. {exception.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "Could not load the latest product. Your edits are still here.";
+        }
+        finally
+        {
+            isReloading = false;
+        }
+    }
+
+    private async Task BeforeInternalNavigationAsync(LocationChangingContext context)
+    {
+        if (allowNavigation || editContext?.IsModified() != true)
+        {
+            return;
+        }
+
+        var confirmed = await ConfirmDiscardAsync(
+            "Leave this page and discard your unsaved changes?");
+        if (!confirmed)
+        {
+            context.PreventNavigation();
+        }
+    }
+
+    private async Task<bool> ConfirmDiscardAsync(string message)
+    {
+        try
+        {
+            return await JS.InvokeAsync<bool>("confirm", message);
+        }
+        catch (JSException)
+        {
+            errorMessage = "Could not confirm this action in the browser. Your edits have not been discarded.";
+            return false;
+        }
+    }
+
+    private void Cancel() => Navigation.NavigateTo("/");
+}

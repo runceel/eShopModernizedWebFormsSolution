@@ -34,7 +34,7 @@ flowchart LR
 
 ### Catalog API 契約
 
-初回実装では `/api/catalog` と `/api/catalog/{id}` を公開する。一覧は 0 起点の `pageIndex`（既定 `0`）と `pageSize`（既定 `10`、有効範囲 `1..100`）を受け取り、ID 昇順で `items`、`pageIndex`、`pageSize`、`totalItems`、`totalPages` を返す。不正なページ指定は HTTP `400` とする。
+`/api/catalog` と `/api/catalog/{id}` に加え、登録・編集フォーム用に `GET /api/catalog/brands` と `GET /api/catalog/types` を公開する。ブランドは `{ id, brand }`、タイプは `{ id, type }` の配列を HTTP `200` で返し、いずれも ID 昇順とする。一覧は 0 起点の `pageIndex`（既定 `0`）と `pageSize`（既定 `10`、有効範囲 `1..100`）を受け取り、ID 昇順で `items`、`pageIndex`、`pageSize`、`totalItems`、`totalPages` を返す。不正なページ指定は HTTP `400` とする。
 
 作成要求は `name`、任意の `description`、`price`、`catalogBrandId`、`catalogTypeId`、`availableStock`、`restockThreshold`、`maxStockThreshold` を受け取る。Name は空白のみでなく最大 50 文字、価格は `0..1,000,000` かつ小数 2 桁以内、在庫項目は `0..10,000,000` の整数とし、ブランド・タイプ ID は実在する行を参照する。商品名の一意制約は設けない。作成は `Location`、強い ETag、`pictureFileName: "dummy.png"`、`onReorder: false` を伴う HTTP `201`、更新は HTTP `200`、削除は HTTP `204` とする。存在しない ID は HTTP `404` とする。更新可能な項目は作成要求と同じで、画像名と `OnReorder` は保持する。
 

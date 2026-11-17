@@ -68,6 +68,7 @@ API 用 URL は別途設計する。存在しない商品 ID や不正なペー�
 - 画像、Name、Description、Brand、Type、Price、Picture name、Stock、Restock、Max stock と、Edit / Details / Delete の操作を表示する。
 - ページ数・件数と Previous / Next を表示する。商品が 0 件の場合は `No data was returned.` を表示する。
 - 組み込み初期データでは 1 ページ目に ID 1〜10、2 ページ目に ID 11〜12 を表示する。CSV を選択した場合はそのデータを表示する。
+- 一覧には Name、Description、Brand、Type、Picture name を対象とする大文字・小文字を区別しない検索と、Brand / Type の組み合わせフィルターを設ける。絞り込み後に ID 昇順、Name 昇順、Price 昇順 / 降順で並べ替え、同値は ID 昇順とする。検索・フィルター・並べ替えの変更時は 1 ページ目に戻る。結果は Catalog API の全ページを取得した後に Web 側で絞り込み、並べ替え、10 件ずつページ表示する。
 
 ## 商品詳細・登録・編集・削除
 

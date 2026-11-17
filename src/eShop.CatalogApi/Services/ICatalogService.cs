@@ -9,6 +9,10 @@ internal interface ICatalogService
         int pageSize,
         CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<CatalogBrandResponse>> GetBrandsAsync(CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<CatalogTypeResponse>> GetTypesAsync(CancellationToken cancellationToken);
+
     Task<CatalogItemResult?> GetByIdAsync(int id, CancellationToken cancellationToken);
 
     Task<CatalogItemResult> CreateAsync(

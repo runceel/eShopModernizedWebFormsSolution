@@ -1,0 +1,23 @@
+<div class="product-details">
+    <img class="product-image" src="@ImageUrl" alt="@Item.Name" />
+    <dl class="detail-list">
+        <div><dt>Name</dt><dd>@Item.Name</dd></div>
+        <div><dt>Description</dt><dd>@Item.Description</dd></div>
+        <div><dt>Brand</dt><dd>@Item.CatalogBrand</dd></div>
+        <div><dt>Type</dt><dd>@Item.CatalogType</dd></div>
+        <div><dt>Price</dt><dd>@Item.Price.ToString("C2", EnUs)</dd></div>
+        <div><dt>Picture name</dt><dd>@Item.PictureFileName</dd></div>
+        <div><dt>Stock</dt><dd>@Item.AvailableStock</dd></div>
+        <div><dt>Restock</dt><dd>@Item.RestockThreshold</dd></div>
+        <div><dt>Max stock</dt><dd>@Item.MaxStockThreshold</dd></div>
+    </dl>
+</div>
+
+@code {
+    private static readonly CultureInfo EnUs = CultureInfo.GetCultureInfo("en-US");
+
+    [Parameter, EditorRequired]
+    public CatalogItemDto Item { get; set; } = null!;
+
+    private string ImageUrl => $"/Pics/{Uri.EscapeDataString(Item.PictureFileName)}";
+}

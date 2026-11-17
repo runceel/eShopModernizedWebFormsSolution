@@ -23,3 +23,9 @@ public sealed record CatalogItemPageResponse(
     int PageSize,
     long TotalItems,
     long TotalPages);
+
+/// <summary>A catalog brand available to item forms.</summary>
+public sealed record CatalogBrandResponse(int Id, string Brand);
+
+/// <summary>A catalog type available to item forms.</summary>
+public sealed record CatalogTypeResponse(int Id, string Type);
