@@ -118,6 +118,44 @@ namespace eShop.CatalogData.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("initialized_at_utc");
 
+                    b.Property<string>("ManagedImageHashesJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text")
+                        .HasDefaultValue("{}")
+                        .HasColumnName("managed_image_hashes_json");
+
+                    b.Property<string>("ResetBackupDirectory")
+                        .HasColumnType("text")
+                        .HasColumnName("reset_backup_directory");
+
+                    b.Property<string>("ResetImageDirectory")
+                        .HasColumnType("text")
+                        .HasColumnName("reset_image_directory");
+
+                    b.Property<string>("ResetImageManifestJson")
+                        .HasColumnType("text")
+                        .HasColumnName("reset_image_manifest_json");
+
+                    b.Property<Guid?>("ResetOperationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reset_operation_id");
+
+                    b.Property<string>("ResetSnapshotJson")
+                        .HasColumnType("text")
+                        .HasColumnName("reset_snapshot_json");
+
+                    b.Property<DateTimeOffset?>("ResetStartedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reset_started_at_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("varchar(32)")
+                        .HasDefaultValue("initialized")
+                        .HasColumnName("status");
+
                     b.HasKey("Id")
                         .HasName("pk_catalog_initialization");
 

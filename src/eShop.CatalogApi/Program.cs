@@ -37,6 +37,7 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseCatalogInitializationGate();
 app.UseCatalogCsrfProtection();
 
 if (app.Environment.IsDevelopment())
@@ -63,12 +64,18 @@ sealed class CatalogDatabaseHealthCheck(CatalogDbContext dbContext) : IHealthChe
                 return HealthCheckResult.Unhealthy("Catalog database migrations are pending.");
             }
 
-            var initialized = await dbContext.CatalogInitializations
+            var markers = await dbContext.CatalogInitializations
                 .AsNoTracking()
-                .AnyAsync(marker => marker.Id == 1, cancellationToken);
-            return initialized
+                .OrderBy(marker => marker.Id)
+                .Take(2)
+                .ToListAsync(cancellationToken);
+            return markers.Count == 1
+                && markers[0].Id == 1
+                && markers[0].Status == "initialized"
+                && markers[0].ResetOperationId is null
                 ? HealthCheckResult.Healthy()
-                : HealthCheckResult.Unhealthy("Catalog initialization has not completed.");
+                : HealthCheckResult.Unhealthy(
+                    "Catalog initialization or reset recovery has not completed.");
         }
         catch (DbException exception)
         {

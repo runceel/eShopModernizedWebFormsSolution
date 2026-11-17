@@ -69,6 +69,14 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
             entity.HasKey(item => item.Id).HasName("pk_catalog_initialization");
             entity.Property(item => item.Id).HasColumnName("id");
             entity.Property(item => item.InitializedAtUtc).HasColumnName("initialized_at_utc").HasColumnType("timestamp with time zone").IsRequired();
+            entity.Property(item => item.Status).HasColumnName("status").HasColumnType("varchar(32)").HasDefaultValue("initialized").IsRequired();
+            entity.Property(item => item.ManagedImageHashesJson).HasColumnName("managed_image_hashes_json").HasColumnType("text").HasDefaultValue("{}").IsRequired();
+            entity.Property(item => item.ResetOperationId).HasColumnName("reset_operation_id");
+            entity.Property(item => item.ResetStartedAtUtc).HasColumnName("reset_started_at_utc").HasColumnType("timestamp with time zone");
+            entity.Property(item => item.ResetSnapshotJson).HasColumnName("reset_snapshot_json").HasColumnType("text");
+            entity.Property(item => item.ResetImageDirectory).HasColumnName("reset_image_directory").HasColumnType("text");
+            entity.Property(item => item.ResetBackupDirectory).HasColumnName("reset_backup_directory").HasColumnType("text");
+            entity.Property(item => item.ResetImageManifestJson).HasColumnName("reset_image_manifest_json").HasColumnType("text");
         });
     }
 }
