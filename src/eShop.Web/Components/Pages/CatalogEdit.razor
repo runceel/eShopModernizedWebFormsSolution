@@ -2,6 +2,7 @@
 @inject CatalogApiClient CatalogApi
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Edit - Catalog manager</PageTitle>
 
@@ -97,6 +98,12 @@
         {
             item = null;
             editContext = null;
+            if (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                HttpContextAccessor.HttpContext?.Response
+                    .ApplyLegacyNotFoundStatus();
+            }
+
             errorMessage = exception.StatusCode == System.Net.HttpStatusCode.NotFound
                 ? "No catalog item exists with the requested ID."
                 : exception.Message;

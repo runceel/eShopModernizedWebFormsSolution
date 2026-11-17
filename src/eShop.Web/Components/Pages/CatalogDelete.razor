@@ -1,6 +1,7 @@
 @page "/Catalog/Delete/{Id:int}"
 @inject CatalogApiClient CatalogApi
 @inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Delete - Catalog manager</PageTitle>
 
@@ -54,6 +55,12 @@
         catch (CatalogApiClientException exception)
         {
             item = null;
+            if (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                HttpContextAccessor.HttpContext?.Response
+                    .ApplyLegacyNotFoundStatus();
+            }
+
             errorMessage = exception.StatusCode == System.Net.HttpStatusCode.NotFound
                 ? "No catalog item exists with the requested ID."
                 : exception.Message;

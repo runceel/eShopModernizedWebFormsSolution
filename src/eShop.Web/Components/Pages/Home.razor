@@ -1,5 +1,8 @@
 ﻿@page "/"
 @page "/catalog"
+@page "/Default"
+@page "/Default.aspx"
+@page "/Default/index/{index:int}/size/{size:int}"
 @inject CatalogApiClient CatalogApi
 @inject NavigationManager Navigation
 
@@ -69,13 +72,13 @@
             </div>
 
             var filteredItems = GetFilteredItems();
-            var visibleItems = filteredItems
-                .Skip(pageIndex * PageSize)
-                .Take(PageSize)
-                .ToArray();
             var totalPages = filteredItems.Count == 0
                 ? 0
-                : (filteredItems.Count + PageSize - 1) / PageSize;
+                : (int)(((long)filteredItems.Count + pageSize - 1) / pageSize);
+            var skipCount = (long)pageIndex * pageSize;
+            var visibleItems = skipCount > int.MaxValue
+                ? Array.Empty<CatalogItemDto>()
+                : filteredItems.Skip((int)skipCount).Take(pageSize).ToArray();
 
             @if (visibleItems.Length == 0)
             {
@@ -130,7 +133,7 @@
                 </div>
 
                 <div class="pager">
-                    <p>Showing @PageSize of @filteredItems.Count products - Page @(pageIndex + 1) - @totalPages</p>
+                    <p>Showing @pageSize of @filteredItems.Count products - Page @(pageIndex + 1) - @totalPages</p>
                     <div class="pager-actions">
                         <FluentButton Disabled="@(pageIndex == 0)" OnClick="PreviousPage">Previous</FluentButton>
                         <FluentButton Disabled="@(pageIndex >= totalPages - 1)" OnClick="NextPage">Next</FluentButton>
@@ -143,7 +146,13 @@
 
 @code {
     private static readonly CultureInfo EnUs = CultureInfo.GetCultureInfo("en-US");
-    private const int PageSize = 10;
+    private const int DefaultPageSize = 10;
+
+    [Parameter]
+    public int Index { get; set; }
+
+    [Parameter]
+    public int Size { get; set; } = DefaultPageSize;
 
     private IReadOnlyList<CatalogItemDto> items = [];
     private IReadOnlyList<CatalogBrandDto> brands = [];
@@ -153,8 +162,20 @@
     private string typeFilter = string.Empty;
     private string sortOrder = "id";
     private int pageIndex;
+    private int pageSize = DefaultPageSize;
+    private bool isLegacyPagedRoute;
     private bool isLoading = true;
     private string? loadError;
+
+    protected override void OnParametersSet()
+    {
+        isLegacyPagedRoute = LegacyCatalogRoute.TryParsePagedList(
+            Navigation.ToBaseRelativePath(Navigation.Uri),
+            out var routePageIndex,
+            out var routePageSize);
+        pageIndex = isLegacyPagedRoute ? routePageIndex : 0;
+        pageSize = isLegacyPagedRoute ? routePageSize : DefaultPageSize;
+    }
 
     protected override Task OnInitializedAsync() => LoadAsync();
 
@@ -227,17 +248,30 @@
 
     private static string ImageUrl(string fileName) => $"/Pics/{Uri.EscapeDataString(fileName)}";
 
-    private void ResetPage() => pageIndex = 0;
+    private void ResetPage()
+    {
+        pageIndex = 0;
+        if (isLegacyPagedRoute)
+        {
+            Navigation.NavigateTo($"/Default/index/0/size/{pageSize}");
+        }
+    }
 
-    private void PreviousPage() => pageIndex = Math.Max(0, pageIndex - 1);
+    private void PreviousPage() => NavigateToPage(Math.Max(0, pageIndex - 1));
 
     private void NextPage()
     {
-        var totalPages = (GetFilteredItems().Count + PageSize - 1) / PageSize;
+        var totalPages = (int)(((long)GetFilteredItems().Count + pageSize - 1) / pageSize);
         if (pageIndex < totalPages - 1)
         {
-            pageIndex++;
+            NavigateToPage(pageIndex + 1);
         }
+    }
+
+    private void NavigateToPage(int index)
+    {
+        pageIndex = index;
+        Navigation.NavigateTo($"/Default/index/{index}/size/{pageSize}");
     }
 
     private void CreateNew() => Navigation.NavigateTo("/Catalog/Create");

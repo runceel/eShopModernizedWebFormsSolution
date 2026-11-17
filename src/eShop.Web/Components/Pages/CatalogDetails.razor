@@ -1,5 +1,6 @@
 @page "/Catalog/Details/{Id:int}"
 @inject CatalogApiClient CatalogApi
+@inject IHttpContextAccessor HttpContextAccessor
 
 <PageTitle>Details - Catalog manager</PageTitle>
 
@@ -43,6 +44,12 @@
         }
         catch (CatalogApiClientException exception)
         {
+            if (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                HttpContextAccessor.HttpContext?.Response
+                    .ApplyLegacyNotFoundStatus();
+            }
+
             errorMessage = exception.StatusCode == System.Net.HttpStatusCode.NotFound
                 ? "No catalog item exists with the requested ID."
                 : exception.Message;
