@@ -5,4 +5,5 @@
   <Project Path="src\eShop.CatalogApi\eShop.CatalogApi.csproj" />
   <Project Path="src\eShop.CatalogData\eShop.CatalogData.csproj" />
   <Project Path="src\eShop.CatalogInit\eShop.CatalogInit.csproj" />
+  <Project Path="tests\eShop.CatalogApi.Tests\eShop.CatalogApi.Tests.csproj" />
 </Solution>

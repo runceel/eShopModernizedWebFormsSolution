@@ -48,6 +48,7 @@ public sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> options)
             entity.Property(item => item.RestockThreshold).HasColumnName("restock_threshold").IsRequired();
             entity.Property(item => item.MaxStockThreshold).HasColumnName("max_stock_threshold").IsRequired();
             entity.Property(item => item.OnReorder).HasColumnName("on_reorder").IsRequired();
+            entity.Property(item => item.Version).IsRowVersion();
 
             entity.HasOne(item => item.CatalogBrand)
                 .WithMany(brand => brand.Catalogs)

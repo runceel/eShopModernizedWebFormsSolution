@@ -32,6 +32,14 @@ flowchart LR
 初期化が正常に終わる前に API が通常のカタログ操作を受け付けない。画像の配信に必要なアクセス経路は実装時に決定するが、Web が DB へ直接アクセスする構成にはしない。
 サービス分離の判断は [ADR 0002](../adr/0002-service-boundaries.md) を参照する。
 
+### Catalog API 契約
+
+初回実装では `/api/catalog` と `/api/catalog/{id}` を公開する。一覧は 0 起点の `pageIndex`（既定 `0`）と `pageSize`（既定 `10`、有効範囲 `1..100`）を受け取り、ID 昇順で `items`、`pageIndex`、`pageSize`、`totalItems`、`totalPages` を返す。不正なページ指定は HTTP `400` とする。
+
+作成要求は `name`、任意の `description`、`price`、`catalogBrandId`、`catalogTypeId`、`availableStock`、`restockThreshold`、`maxStockThreshold` を受け取る。Name は空白のみでなく最大 50 文字、価格は `0..1,000,000` かつ小数 2 桁以内、在庫項目は `0..10,000,000` の整数とし、ブランド・タイプ ID は実在する行を参照する。商品名の一意制約は設けない。作成は `Location`、強い ETag、`pictureFileName: "dummy.png"`、`onReorder: false` を伴う HTTP `201`、更新は HTTP `200`、削除は HTTP `204` とする。存在しない ID は HTTP `404` とする。更新可能な項目は作成要求と同じで、画像名と `OnReorder` は保持する。
+
+詳細・作成・更新の成功応答は、プロバイダーが生成する現在の行バージョンを ETag で返す。更新には `If-Match` の強い引用符付き ETag を 1 つ必要とし、欠落は HTTP `428`、不正または弱い値は HTTP `400`、古い値は `code: "concurrency_conflict"` と `resourceId` を含む HTTP `409` とする。競合した更新は行を変更しない。検証・要求エラーは安定した `code` とフィールドエラー時の `errors` を含む `application/problem+json` を返す。状態変更を伴うクロスオリジン要求は HTTP `403` とする。API readiness は Migration 適用済みと初期化成功マーカーの両方を確認する。Development 環境では `/openapi/v1.json` で OpenAPI 文書を公開する。
+
 ## ソリューションとプロジェクトの配置
 
 移行先リポジトリには次の構成を設ける。これは設計であり、プロジェクトの作成・起動検証が完了したことを示さない。[ADR 0005](../adr/0005-solution-layout.md) に選択理由を記録する。

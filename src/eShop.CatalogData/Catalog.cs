@@ -13,6 +13,7 @@ public sealed class Catalog
     public int RestockThreshold { get; set; }
     public int MaxStockThreshold { get; set; }
     public bool OnReorder { get; set; }
+    public uint Version { get; private set; }
     public CatalogType CatalogType { get; set; } = null!;
     public CatalogBrand CatalogBrand { get; set; } = null!;
 }

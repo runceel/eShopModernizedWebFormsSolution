@@ -1,0 +1,46 @@
+@baseUrl = http://localhost:5000
+
+# Replace baseUrl with the API endpoint reported by `aspire describe`.
+
+### List the first page
+GET {{baseUrl}}/api/catalog?pageIndex=0&pageSize=10
+
+### Read an item and copy its ETag to If-Match
+GET {{baseUrl}}/api/catalog/1
+
+### Create an item
+POST {{baseUrl}}/api/catalog
+Content-Type: application/json
+
+{
+  "name": "Sample catalog item",
+  "description": "Created through the Catalog API",
+  "price": 12.50,
+  "catalogBrandId": 1,
+  "catalogTypeId": 1,
+  "availableStock": 10,
+  "restockThreshold": 2,
+  "maxStockThreshold": 20
+}
+
+### Update an item using the ETag returned by GET
+PUT {{baseUrl}}/api/catalog/1
+Content-Type: application/json
+If-Match: "00000000"
+
+{
+  "name": "Updated catalog item",
+  "description": "Updated through the Catalog API",
+  "price": 12.50,
+  "catalogBrandId": 1,
+  "catalogTypeId": 1,
+  "availableStock": 10,
+  "restockThreshold": 2,
+  "maxStockThreshold": 20
+}
+
+### Delete an item
+DELETE {{baseUrl}}/api/catalog/1
+
+### Read an unknown item
+GET {{baseUrl}}/api/catalog/999999

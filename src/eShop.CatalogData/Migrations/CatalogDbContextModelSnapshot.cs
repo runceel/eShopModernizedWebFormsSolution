@@ -73,6 +73,12 @@ namespace eShop.CatalogData.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("restock_threshold");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("pk_catalog");
 
