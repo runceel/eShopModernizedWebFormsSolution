@@ -161,6 +161,8 @@ DB と画像は単一トランザクションではない。画像配置前に�
 
 組み込みデータを既定とし、CSV・画像 ZIP は AppHost 起動時の環境変数で選択する。`CATALOG_USE_CUSTOMIZATION_DATA` は `true` / `false`（既定 `false`）、`CATALOG_CUSTOMIZATION_DIRECTORY` は入力ディレクトリ（既定 `Setup`）、`CATALOG_IMAGES_PATH` は画像配置先を指定する。相対パスは AppHost プロジェクトディレクトリ基準、絶対パスも利用でき、作業ディレクトリには依存しない。画像配置先の既定は `%LOCALAPPDATA%/eShopModernizedWebFormsSolution/catalog-images`。これらの設定は AppHost から初期化サービスと Web に渡す。
 
+Web は `/Pics/{name}` の要求に対して設定された画像ディレクトリを優先し、そこに存在しない場合は移行元の組み込み画像を配信する。組み込み画像は Web アプリに同梱し、設定されたディレクトリ内の画像を変更しない。
+
 現行形式の `CatalogTypes.csv`、`CatalogBrands.csv`、`CatalogItems.csv`、`CatalogItems.zip` を使う。タイプ・ブランド CSV のヘッダーは `CatalogType`、`CatalogBrand`。商品 CSV の必須列は `CatalogTypeName`、`CatalogBrandName`、`Description`、`Name`、`Price`、`PictureFileName`、任意列は `AvailableStock`、`RestockThreshold`、`MaxStockThreshold`、`OnReorder`。ヘッダー照合は大文字・小文字を区別しない。省略された任意列は `0`、`0`、`0`、`false` を既定値とする。価格は invariant culture で解釈し、在庫・参照先・商品名・画像ファイル名を DB 変更前に検証する。ZIP の画像は商品 CSV から参照するファイル名で対応付け、対応形式は PNG、JPEG、GIF、WebP。ZIP の絶対パス・親ディレクトリ参照・シンボリックリンク・重複名・対応しない拡張子を拒否する。入力上限は CSV 1 ファイル 5 MiB、ZIP 64 MiB、ZIP エントリ 512 件、画像 1 件 20 MiB、画像合計 100 MiB。現行の `1.png`〜`12.png`、`dummy.png` は例であり固定要件ではない。
 
 設定変更は実行中プロセスへの反映を前提にしない。AppHost を停止し、変更した環境変数を設定したシェルで再起動後、既存 DB への反映は明示的なリセットで行う。通常の再起動だけでは再投入しない。初期化判断は [ADR 0003](../adr/0003-persistence-and-initialization.md) と [ADR 0007](../adr/0007-initialization-state.md)、入力判断は [ADR 0009](../adr/0009-customization-input.md) を参照する。

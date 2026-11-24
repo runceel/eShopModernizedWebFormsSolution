@@ -153,8 +153,7 @@
         catch (CatalogApiClientException exception)
         {
             ApplyServerErrors(exception);
-            isConcurrencyConflict = exception.StatusCode == System.Net.HttpStatusCode.Conflict
-                && exception.Code == "catalog_concurrency_conflict";
+            isConcurrencyConflict = exception.IsConcurrencyConflict;
             errorMessage = exception.Message;
         }
         catch (HttpRequestException)

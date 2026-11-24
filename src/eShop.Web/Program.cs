@@ -66,7 +66,9 @@ app.Use(async (context, next) =>
 
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(imageDirectory),
+    FileProvider = new CompositeFileProvider(
+        new PhysicalFileProvider(imageDirectory),
+        new PhysicalFileProvider(Path.Combine(app.Environment.ContentRootPath, "BuiltInPics"))),
     RequestPath = "/Pics"
 });
 

@@ -49,7 +49,7 @@ public sealed class CatalogApiClientTests
                 Status = 409,
                 Title = "Catalog item conflict",
                 Detail = "Catalog item 7 changed after it was read.",
-                Code = "catalog_concurrency_conflict",
+                Code = "concurrency_conflict",
                 ResourceId = 7
             }, HttpStatusCode.Conflict);
         });
@@ -61,8 +61,19 @@ public sealed class CatalogApiClientTests
 
         Assert.Equal("\"00000001\"", ifMatch);
         Assert.Equal(HttpStatusCode.Conflict, exception.StatusCode);
-        Assert.Equal("catalog_concurrency_conflict", exception.Code);
+        Assert.Equal("concurrency_conflict", exception.Code);
+        Assert.True(exception.IsConcurrencyConflict);
         Assert.Equal(7, exception.ResourceId);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Conflict, "other_error")]
+    [InlineData(HttpStatusCode.BadRequest, "concurrency_conflict")]
+    public void IsConcurrencyConflictRequiresMatchingStatusAndCode(HttpStatusCode status, string code)
+    {
+        var exception = new CatalogApiClientException(status, new CatalogApiProblemDto { Code = code });
+
+        Assert.False(exception.IsConcurrencyConflict);
     }
 
     private static HttpClient CreateClient(Func<HttpRequestMessage, HttpResponseMessage> handler) =>

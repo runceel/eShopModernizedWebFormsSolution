@@ -141,6 +141,9 @@ public sealed class CatalogApiClientException(
 
     public string? Code { get; } = problem.Code;
 
+    public bool IsConcurrencyConflict =>
+        StatusCode == HttpStatusCode.Conflict && Code == "concurrency_conflict";
+
     public int? ResourceId { get; } = problem.ResourceId;
 
     public IReadOnlyDictionary<string, string[]> Errors { get; } =
