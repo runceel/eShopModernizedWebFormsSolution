@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Cryptography;
 using eShop.Web.Contracts;
 using eShop.Web.Services;
 using Microsoft.AspNetCore.Hosting;
@@ -142,6 +143,42 @@ public sealed class LegacyUrlCompatibilityTests(LegacyUrlTestFactory factory)
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal($"/Pics/{fileName}", response.RequestMessage!.RequestUri!.PathAndQuery);
             Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+            Assert.Equal(imageBytes, await response.Content.ReadAsByteArrayAsync());
+        }
+        finally
+        {
+            File.Delete(imagePath);
+        }
+    }
+
+    [Theory]
+    [InlineData("1.png", "0487BC526DA61586780355F4F50AA368F09C0A212809B1F08444382F4D789EB0")]
+    [InlineData("5.png", "242EFA0C6C5324943D87591CB063BCCA3D8D5FF28EF5811C0B203E17011BF33E")]
+    [InlineData("dummy.png", "8E5CB858EACE2EA912630D4CFEB8D6290B85EBBF98E4E45B439E7FDC1BCC6DE2")]
+    public async Task PicsRouteServesOriginalBuiltInImagesWhenNoCustomImageExists(string fileName, string expectedHash)
+    {
+        using var client = factory.CreateNoRedirectClient();
+        using var response = await client.GetAsync($"/Pics/{fileName}");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal($"/Pics/{fileName}", response.RequestMessage!.RequestUri!.PathAndQuery);
+        Assert.Equal("image/png", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(expectedHash, Convert.ToHexString(SHA256.HashData(await response.Content.ReadAsByteArrayAsync())));
+    }
+
+    [Fact]
+    public async Task PicsRoutePrefersConfiguredImageOverBuiltInImage()
+    {
+        var imagePath = Path.Combine(factory.ImageDirectory, "5.png");
+        byte[] imageBytes = [137, 80, 78, 71, 13, 10, 26, 10, 1, 2, 3];
+        await File.WriteAllBytesAsync(imagePath, imageBytes);
+
+        try
+        {
+            using var client = factory.CreateNoRedirectClient();
+            using var response = await client.GetAsync("/Pics/5.png");
+
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(imageBytes, await response.Content.ReadAsByteArrayAsync());
         }
         finally
