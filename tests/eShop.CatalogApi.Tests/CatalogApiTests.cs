@@ -276,6 +276,7 @@ public sealed class CatalogApiTests(PostgreSqlContainer container) : CatalogTest
         second["name"] = "Stale writer";
         using var rejected = await Put(1, second, tag);
         Assert.Equal(HttpStatusCode.Conflict, rejected.StatusCode);
+        Assert.Equal("concurrency_conflict", (await Json(rejected)).GetProperty("code").GetString());
         using var detail = await Client.GetAsync($"{Path}/1");
         Assert.Equal("First writer", (await Json(detail)).GetProperty("name").GetString());
     }
