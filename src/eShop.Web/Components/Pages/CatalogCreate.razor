@@ -1,0 +1,136 @@
+@page "/Catalog/Create"
+@page "/Catalog/Create.aspx"
+@inject CatalogApiClient CatalogApi
+@inject NavigationManager Navigation
+
+<PageTitle>Create - Catalog manager</PageTitle>
+
+<FluentCard class="catalog-card form-card">
+    <h1>Create</h1>
+    @if (isLoading)
+    {
+        <p role="status">Loading form...</p>
+    }
+    else if (!string.IsNullOrWhiteSpace(loadError))
+    {
+        <p class="status-error" role="alert">@loadError</p>
+        <a class="action-link secondary-link" href="/">Cancel</a>
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <p class="status-error" role="alert">@errorMessage</p>
+        }
+
+        <EditForm EditContext="editContext" OnSubmit="SubmitAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <CatalogFormFields Model="model" Brands="brands" Types="types" />
+            <div class="form-actions">
+                <FluentButton Appearance="ButtonAppearance.Primary"
+                              Type="ButtonType.Submit"
+                              Disabled="@isSaving">
+                    @(isSaving ? "Creating..." : "Create")
+                </FluentButton>
+                <FluentButton OnClick="Cancel" Disabled="@isSaving">Cancel</FluentButton>
+            </div>
+        </EditForm>
+    }
+</FluentCard>
+
+@code {
+    private readonly CatalogFormModel model = new();
+    private IReadOnlyList<CatalogBrandDto> brands = [];
+    private IReadOnlyList<CatalogTypeDto> types = [];
+    private EditContext editContext = null!;
+    private ValidationMessageStore serverMessages = null!;
+    private bool isLoading = true;
+    private bool isSaving;
+    private string? loadError;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        editContext = new EditContext(model);
+        serverMessages = new ValidationMessageStore(editContext);
+        try
+        {
+            var brandsTask = CatalogApi.GetBrandsAsync();
+            var typesTask = CatalogApi.GetTypesAsync();
+            await Task.WhenAll(brandsTask, typesTask);
+            brands = await brandsTask;
+            types = await typesTask;
+            if (brands.Count == 0 || types.Count == 0)
+            {
+                loadError = "Catalog brands and types are not available.";
+            }
+            else
+            {
+                model.CatalogBrandId = brands[0].Id;
+                model.CatalogTypeId = types[0].Id;
+            }
+        }
+        catch (CatalogApiClientException exception)
+        {
+            loadError = exception.Message;
+        }
+        catch (HttpRequestException)
+        {
+            loadError = "The Catalog API is unavailable. Try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SubmitAsync(EditContext context)
+    {
+        serverMessages.Clear();
+        errorMessage = null;
+        context.NotifyValidationStateChanged();
+        if (!await context.ValidateAsync())
+        {
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            await CatalogApi.CreateAsync(model.ToRequest());
+            Navigation.NavigateTo("/");
+        }
+        catch (CatalogApiClientException exception)
+        {
+            ApplyServerErrors(exception);
+            errorMessage = exception.Message;
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "The Catalog API is unavailable. Your product was not confirmed as saved.";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ApplyServerErrors(CatalogApiClientException exception)
+    {
+        foreach (var (field, messages) in exception.Errors)
+        {
+            var property = typeof(CatalogFormModel).GetProperties()
+                .FirstOrDefault(candidate => string.Equals(candidate.Name, field, StringComparison.OrdinalIgnoreCase));
+            var identifier = new FieldIdentifier(model, property?.Name ?? string.Empty);
+            foreach (var message in messages)
+            {
+                serverMessages.Add(identifier, message);
+            }
+        }
+
+        editContext.NotifyValidationStateChanged();
+    }
+
+    private void Cancel() => Navigation.NavigateTo("/");
+}

@@ -1,0 +1,66 @@
+@page "/Catalog/Details/{Id:int}"
+@inject CatalogApiClient CatalogApi
+@inject IHttpContextAccessor HttpContextAccessor
+
+<PageTitle>Details - Catalog manager</PageTitle>
+
+<FluentCard class="catalog-card">
+    <h1>Details</h1>
+    @if (isLoading)
+    {
+        <p role="status">Loading product...</p>
+    }
+    else if (item is not null)
+    {
+        <CatalogItemDetails Item="item" />
+        <div class="form-actions">
+            <a class="action-link" href="@($"/Catalog/Edit/{item.Id}")">Edit</a>
+            <a class="action-link secondary-link" href="/">Back to list</a>
+        </div>
+    }
+    else
+    {
+        <p class="status-error" role="alert">@errorMessage</p>
+        <a class="action-link secondary-link" href="/">Back to list</a>
+    }
+</FluentCard>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private CatalogItemDto? item;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        item = null;
+        errorMessage = null;
+        try
+        {
+            item = (await CatalogApi.GetByIdAsync(Id)).Item;
+        }
+        catch (CatalogApiClientException exception)
+        {
+            if (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                HttpContextAccessor.HttpContext?.Response
+                    .ApplyLegacyNotFoundStatus();
+            }
+
+            errorMessage = exception.StatusCode == System.Net.HttpStatusCode.NotFound
+                ? "No catalog item exists with the requested ID."
+                : exception.Message;
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "The Catalog API is unavailable. Try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

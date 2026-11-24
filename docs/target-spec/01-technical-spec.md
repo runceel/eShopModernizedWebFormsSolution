@@ -32,6 +32,14 @@ flowchart LR
 初期化が正常に終わる前に API が通常のカタログ操作を受け付けない。画像の配信に必要なアクセス経路は実装時に決定するが、Web が DB へ直接アクセスする構成にはしない。
 サービス分離の判断は [ADR 0002](../adr/0002-service-boundaries.md) を参照する。
 
+### Catalog API 契約
+
+`/api/catalog` と `/api/catalog/{id}` に加え、登録・編集フォーム用に `GET /api/catalog/brands` と `GET /api/catalog/types` を公開する。ブランドは `{ id, brand }`、タイプは `{ id, type }` の配列を HTTP `200` で返し、いずれも ID 昇順とする。一覧は 0 起点の `pageIndex`（既定 `0`）と `pageSize`（既定 `10`、有効範囲 `1..100`）を受け取り、ID 昇順で `items`、`pageIndex`、`pageSize`、`totalItems`、`totalPages` を返す。不正なページ指定は HTTP `400` とする。
+
+作成要求は `name`、任意の `description`、`price`、`catalogBrandId`、`catalogTypeId`、`availableStock`、`restockThreshold`、`maxStockThreshold` を受け取る。Name は空白のみでなく最大 50 文字、価格は `0..1,000,000` かつ小数 2 桁以内、在庫項目は `0..10,000,000` の整数とし、ブランド・タイプ ID は実在する行を参照する。商品名の一意制約は設けない。作成は `Location`、強い ETag、`pictureFileName: "dummy.png"`、`onReorder: false` を伴う HTTP `201`、更新は HTTP `200`、削除は HTTP `204` とする。存在しない ID は HTTP `404` とする。更新可能な項目は作成要求と同じで、画像名と `OnReorder` は保持する。
+
+詳細・作成・更新の成功応答は、プロバイダーが生成する現在の行バージョンを ETag で返す。更新には `If-Match` の強い引用符付き ETag を 1 つ必要とし、欠落は HTTP `428`、不正または弱い値は HTTP `400`、古い値は `code: "concurrency_conflict"` と `resourceId` を含む HTTP `409` とする。競合した更新は行を変更しない。検証・要求エラーは安定した `code` とフィールドエラー時の `errors` を含む `application/problem+json` を返す。状態変更を伴うクロスオリジン要求は HTTP `403` とする。API readiness は Migration 適用済みと初期化成功マーカーの両方を確認する。Development 環境では `/openapi/v1.json` で OpenAPI 文書を公開する。
+
 ## ソリューションとプロジェクトの配置
 
 移行先リポジトリには次の構成を設ける。これは設計であり、プロジェクトの作成・起動検証が完了したことを示さない。[ADR 0005](../adr/0005-solution-layout.md) に選択理由を記録する。
@@ -151,7 +159,9 @@ API は EF Core と Npgsql で PostgreSQL にアクセスし、スキーマを E
 
 DB と画像は単一トランザクションではない。画像配置前に既存画像の誤上書き・削除を防ぎ、衝突や所有関係を判別できない場合は停止する。初期化途中の失敗・中断、記録と実状態の不整合、確認不能な状態では再シードせず、操作者へ通知して復旧確認まで通常操作を停止する。
 
-組み込みデータを既定とし、CSV・画像 ZIP は AppHost 起動時の環境変数で選択する。入力場所は絶対パス、または AppHost プロジェクトディレクトリ基準の相対パスとし、作業ディレクトリに依存させない。初期化サービスから参照できる配置にし、リポジトリ外にも置けるようにする。現行形式の `CatalogTypes.csv`、`CatalogBrands.csv`、`CatalogItems.csv`、`CatalogItems.zip` を使う。タイプ・ブランド CSV のヘッダーは `CatalogType`、`CatalogBrand`。商品 CSV の必須列は `CatalogTypeName`、`CatalogBrandName`、`Description`、`Name`、`Price`、`PictureFileName`、任意列は `AvailableStock`、`RestockThreshold`、`MaxStockThreshold`、`OnReorder`。価格は invariant culture で解釈し、画像 ZIP は商品から参照するファイル名で対応付ける。現行の `1.png`〜`12.png`、`dummy.png` は例であり固定要件ではない。具体的な環境変数名と物理配置は実装時に定める。
+組み込みデータを既定とし、CSV・画像 ZIP は AppHost 起動時の環境変数で選択する。`CATALOG_USE_CUSTOMIZATION_DATA` は `true` / `false`（既定 `false`）、`CATALOG_CUSTOMIZATION_DIRECTORY` は入力ディレクトリ（既定 `Setup`）、`CATALOG_IMAGES_PATH` は画像配置先を指定する。相対パスは AppHost プロジェクトディレクトリ基準、絶対パスも利用でき、作業ディレクトリには依存しない。画像配置先の既定は `%LOCALAPPDATA%/eShopModernizedWebFormsSolution/catalog-images`。これらの設定は AppHost から初期化サービスと Web に渡す。
+
+現行形式の `CatalogTypes.csv`、`CatalogBrands.csv`、`CatalogItems.csv`、`CatalogItems.zip` を使う。タイプ・ブランド CSV のヘッダーは `CatalogType`、`CatalogBrand`。商品 CSV の必須列は `CatalogTypeName`、`CatalogBrandName`、`Description`、`Name`、`Price`、`PictureFileName`、任意列は `AvailableStock`、`RestockThreshold`、`MaxStockThreshold`、`OnReorder`。ヘッダー照合は大文字・小文字を区別しない。省略された任意列は `0`、`0`、`0`、`false` を既定値とする。価格は invariant culture で解釈し、在庫・参照先・商品名・画像ファイル名を DB 変更前に検証する。ZIP の画像は商品 CSV から参照するファイル名で対応付け、対応形式は PNG、JPEG、GIF、WebP。ZIP の絶対パス・親ディレクトリ参照・シンボリックリンク・重複名・対応しない拡張子を拒否する。入力上限は CSV 1 ファイル 5 MiB、ZIP 64 MiB、ZIP エントリ 512 件、画像 1 件 20 MiB、画像合計 100 MiB。現行の `1.png`〜`12.png`、`dummy.png` は例であり固定要件ではない。
 
 設定変更は実行中プロセスへの反映を前提にしない。AppHost を停止し、変更した環境変数を設定したシェルで再起動後、既存 DB への反映は明示的なリセットで行う。通常の再起動だけでは再投入しない。初期化判断は [ADR 0003](../adr/0003-persistence-and-initialization.md) と [ADR 0007](../adr/0007-initialization-state.md)、入力判断は [ADR 0009](../adr/0009-customization-input.md) を参照する。
 
@@ -160,6 +170,8 @@ DB と画像は単一トランザクションではない。画像配置前に�
 ローカルのカタログ DB に対するリセットを Aspire のリソースコマンドとして Dashboard と CLI に提供する。リソース／コマンド名は実装時に定め、実行中 AppHost の `aspire resource <リソース> --help` と `aspire resource <リソース> <コマンド> --help` で確認する。明示確認は両経路で渡せる必須入力として宣言し、実行側で検証する。`ConfirmationMessage` の表示だけを安全性の根拠にしない。
 
 リセットは実行時点で有効な初期化設定に従い、組み込みデータまたは CSV・画像 ZIP を再投入する。通常起動や商品が 0 件になったことを理由に自動実行しない。
+
+Aspire の `catalog` リソースには `reset-catalog` と `recover-catalog-reset` コマンドを提供する。リセットの必須確認入力は `RESET CATALOG AND SELECTED IMAGES`、復旧の必須確認入力は `RESTORE PREVIOUS CATALOG`。入力値は `ConfirmationMessage` の表示だけに頼らず、コマンド実行側でも完全一致を検証する。リセット状態は DB に永続化し、復旧確認まで API の readiness と通常カタログ操作を停止する。画像のバックアップは画像ディレクトリ外の同一親に置き、選択外の画像は変更しない。
 破壊的操作の確認、入力検証、画像の更新範囲、実行中の利用停止と失敗時の扱いは[品質・ローカル運用](03-quality-and-operations.md#db-リセット)に定める。
 
 ## 未決定の詳細

@@ -1,0 +1,105 @@
+@page "/Catalog/Delete/{Id:int}"
+@inject CatalogApiClient CatalogApi
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor HttpContextAccessor
+
+<PageTitle>Delete - Catalog manager</PageTitle>
+
+<FluentCard class="catalog-card">
+    <h1>Delete</h1>
+    @if (isLoading)
+    {
+        <p role="status">Loading product...</p>
+    }
+    else if (item is not null)
+    {
+        <p>Are you sure you want to delete this?</p>
+        <CatalogItemDetails Item="item" />
+        @if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <p class="status-error" role="alert">@errorMessage</p>
+        }
+        <div class="form-actions">
+            <FluentButton Appearance="ButtonAppearance.Primary"
+                          OnClick="DeleteAsync"
+                          Disabled="@isDeleting">
+                @(isDeleting ? "Deleting..." : "Delete")
+            </FluentButton>
+            <FluentButton OnClick="Cancel" Disabled="@isDeleting">Cancel</FluentButton>
+        </div>
+    }
+    else
+    {
+        <p class="status-error" role="alert">@errorMessage</p>
+        <a class="action-link secondary-link" href="/">Back to list</a>
+    }
+</FluentCard>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private CatalogItemDto? item;
+    private bool isLoading = true;
+    private bool isDeleting;
+    private string? errorMessage;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            item = (await CatalogApi.GetByIdAsync(Id)).Item;
+        }
+        catch (CatalogApiClientException exception)
+        {
+            item = null;
+            if (exception.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                HttpContextAccessor.HttpContext?.Response
+                    .ApplyLegacyNotFoundStatus();
+            }
+
+            errorMessage = exception.StatusCode == System.Net.HttpStatusCode.NotFound
+                ? "No catalog item exists with the requested ID."
+                : exception.Message;
+        }
+        catch (HttpRequestException)
+        {
+            item = null;
+            errorMessage = "The Catalog API is unavailable. Try again.";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task DeleteAsync()
+    {
+        isDeleting = true;
+        errorMessage = null;
+        try
+        {
+            await CatalogApi.DeleteAsync(Id);
+            Navigation.NavigateTo("/");
+        }
+        catch (CatalogApiClientException exception)
+        {
+            errorMessage = exception.StatusCode == System.Net.HttpStatusCode.NotFound
+                ? "This product is no longer available."
+                : exception.Message;
+        }
+        catch (HttpRequestException)
+        {
+            errorMessage = "The Catalog API is unavailable. The product was not confirmed as deleted.";
+        }
+        finally
+        {
+            isDeleting = false;
+        }
+    }
+
+    private void Cancel() => Navigation.NavigateTo("/");
+}
